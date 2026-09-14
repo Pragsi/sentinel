@@ -3,9 +3,9 @@ import json, pathlib, urllib.request, urllib.error, hashlib, shutil, subprocess
 
 OWNER="Pragsi"
 REPO="sentinel"
-CURRENT_VERSION="1.3.0"
+CURRENT_VERSION="1.3.1"
 API=f"https://api.github.com/repos/{OWNER}/{REPO}/releases/latest"
-UA="Sentinel-Pi-Updater/1.3"
+UA="Sentinel-Pi-Updater/1.3.1"
 CACHE=pathlib.Path.home()/".sentinel"/"updates"
 CACHE.mkdir(parents=True, exist_ok=True)
 
