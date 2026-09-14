@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+Sentinel_*.zip
+Sentinel_*.zip.sha256
