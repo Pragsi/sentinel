@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+import sys, os, pathlib, zipfile, tempfile, shutil, time
+
+if os.geteuid()!=0:
+    print("Must run as root.",file=sys.stderr); sys.exit(1)
+if len(sys.argv)!=2:
+    print("Usage: sentinel-update-helper <zip>",file=sys.stderr); sys.exit(2)
+
+zpath=pathlib.Path(sys.argv[1]).resolve()
+if not zpath.exists() or zpath.suffix.lower()!=".zip":
+    print("Invalid update ZIP.",file=sys.stderr); sys.exit(3)
+
+with tempfile.TemporaryDirectory(prefix="sentinel-update-") as td:
+    td=pathlib.Path(td)
+    with zipfile.ZipFile(zpath) as z:
+        for n in z.namelist():
+            p=pathlib.PurePosixPath(n)
+            if p.is_absolute() or ".." in p.parts:
+                print("Unsafe ZIP path.",file=sys.stderr); sys.exit(4)
+        z.extractall(td)
+
+    launchers=list(td.rglob("sentinel_launcher.py"))
+    if not launchers:
+        print("sentinel_launcher.py missing.",file=sys.stderr); sys.exit(5)
+    sentdir=launchers[0].parent
+    required={"sentinel_launcher.py","capture_ui.py","cc1101_driver.py","pulse_capture.py","github_updater.py"}
+    missing=[x for x in required if not (sentdir/x).exists()]
+    if missing:
+        print("Missing: "+", ".join(missing),file=sys.stderr); sys.exit(6)
+
+    target=pathlib.Path("/opt/sentinel")
+    backup=pathlib.Path("/opt")/f"sentinel-backup-{time.strftime('%Y%m%d-%H%M%S')}"
+    if target.exists(): shutil.copytree(target,backup)
+    try:
+        target.mkdir(parents=True,exist_ok=True)
+        for f in sentdir.glob("*.py"):
+            shutil.copy2(f,target/f.name); os.chmod(target/f.name,0o755)
+        pathlib.Path("/var/lib/sentinel").mkdir(parents=True,exist_ok=True)
+        pathlib.Path("/var/lib/sentinel/last_backup").write_text(str(backup))
+    except Exception:
+        if backup.exists():
+            shutil.rmtree(target,ignore_errors=True); shutil.copytree(backup,target)
+        raise
+
+print("Update installed successfully.")
