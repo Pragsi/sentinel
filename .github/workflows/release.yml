@@ -14,7 +14,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           ZIP="Sentinel_${VERSION}.zip"
-          zip -r "$ZIP" sentinel README.md -x "*/__pycache__/*"
+          zip -r "$ZIP" sentinel install.sh sentinel-update-helper README.md -x "*/__pycache__/*"
           sha256sum "$ZIP" > "$ZIP.sha256"
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
       - name: Publish GitHub Release
