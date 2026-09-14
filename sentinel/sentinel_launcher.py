@@ -23,28 +23,54 @@ def load_json(path):
 
 class App(tk.Tk):
     def __init__(self):
-        super().__init__(); self.title("Sentinel"); self.configure(bg=BG)
-        self.attributes("-fullscreen",True); self.geometry("800x480")
-        self.bind("<Escape>",lambda e:self.attributes("-fullscreen",False))
-        h=tk.Frame(self,bg=BG,height=52); h.pack(fill="x"); h.pack_propagate(False)
-        tk.Label(h,text="SENTINEL",bg=BG,fg=WHITE,font=("DejaVu Sans",22,"bold")).pack(side="left",padx=(18,8))
-        tk.Label(h,text="RF FIELD CONSOLE",bg=BG,fg=CYAN,font=("DejaVu Sans",9,"bold")).pack(side="left",pady=(8,0))
-        self.clock=tk.Label(h,text="--:--",bg=BG,fg=FG,font=("DejaVu Sans",10,"bold")); self.clock.pack(side="right",padx=12)
-        self.radio=tk.Label(h,text="CC1101 --",bg=BG,fg=MUTED,font=("DejaVu Sans",10,"bold")); self.radio.pack(side="right",padx=8)
+        super().__init__()
+        self.title("Sentinel")
+        self.configure(bg=BG)
+
+        # Kiosk-style full screen. Do not set a fixed 800x480 geometry after
+        # enabling fullscreen: some Raspberry Pi window managers interpret
+        # that as a request to return the app to a normal-sized window.
+        self.overrideredirect(True)
+        sw=self.winfo_screenwidth(); sh=self.winfo_screenheight()
+        self.geometry(f"{sw}x{sh}+0+0")
+        self.attributes("-fullscreen",True)
+        self.after_idle(self._enforce_fullscreen)
+        self.bind("<Escape>",lambda e:self._leave_fullscreen())
+
+        h=tk.Frame(self,bg=BG,height=64); h.pack(fill="x"); h.pack_propagate(False)
+        tk.Label(h,text="SENTINEL",bg=BG,fg=WHITE,font=("DejaVu Sans",26,"bold")).pack(side="left",padx=(24,10))
+        tk.Label(h,text="RF FIELD CONSOLE",bg=BG,fg=CYAN,font=("DejaVu Sans",10,"bold")).pack(side="left",pady=(10,0))
+        self.clock=tk.Label(h,text="--:--",bg=BG,fg=FG,font=("DejaVu Sans",12,"bold")); self.clock.pack(side="right",padx=18)
+        self.radio=tk.Label(h,text="CC1101 --",bg=BG,fg=MUTED,font=("DejaVu Sans",11,"bold")); self.radio.pack(side="right",padx=10)
+
         self.body=tk.Frame(self,bg=BG); self.body.pack(fill="both",expand=True)
-        f=tk.Frame(self,bg=BG,height=34); f.pack(fill="x",side="bottom"); f.pack_propagate(False)
-        tk.Label(f,text=f"Sentinel {CURRENT_VERSION}",bg=BG,fg=MUTED,font=("DejaVu Sans",8)).pack(side="left",padx=14)
-        tk.Button(f,text="POWER",command=self.power,bg=BG,fg=MUTED,bd=0).pack(side="right",padx=(4,12))
-        tk.Button(f,text="GO TO DESKTOP",command=self.desktop,bg=BG,fg=WHITE,bd=0,font=("DejaVu Sans",9,"bold")).pack(side="right",padx=8)
+        f=tk.Frame(self,bg=BG,height=44); f.pack(fill="x",side="bottom"); f.pack_propagate(False)
+        tk.Label(f,text=f"Sentinel {CURRENT_VERSION}",bg=BG,fg=MUTED,font=("DejaVu Sans",9)).pack(side="left",padx=18)
+        tk.Button(f,text="POWER",command=self.power,bg=BG,fg=MUTED,bd=0,font=("DejaVu Sans",9,"bold")).pack(side="right",padx=(6,18))
+        tk.Button(f,text="GO TO DESKTOP",command=self.desktop,bg=BG,fg=WHITE,bd=0,font=("DejaVu Sans",10,"bold")).pack(side="right",padx=10)
+
         self.home=tk.Frame(self.body,bg=BG); self.rf=tk.Frame(self.body,bg=BG)
         self.build_home(); self.build_rf(); self.show_home(); self.after(1000,self.refresh)
 
+    def _enforce_fullscreen(self):
+        try:
+            self.attributes("-fullscreen",True)
+            self.lift()
+            self.focus_force()
+        except tk.TclError:
+            pass
+
+    def _leave_fullscreen(self):
+        # Escape is retained as an emergency way out while developing.
+        self.attributes("-fullscreen",False)
+        self.overrideredirect(False)
+
     def tile(self,parent,title,sub,cmd,color,r,c):
-        b=tk.Button(parent,text=f"{title}\n{sub}",command=cmd,bg=color,fg=WHITE,bd=0,anchor="w",justify="left",padx=14,font=("DejaVu Sans",12,"bold"))
-        b.grid(row=r,column=c,sticky="nsew",padx=6,pady=6)
+        b=tk.Button(parent,text=f"{title}\n{sub}",command=cmd,bg=color,fg=WHITE,bd=0,anchor="w",justify="left",padx=20,font=("DejaVu Sans",15,"bold"))
+        b.grid(row=r,column=c,sticky="nsew",padx=8,pady=8)
 
     def build_home(self):
-        g=tk.Frame(self.home,bg=BG); g.pack(fill="both",expand=True,padx=10,pady=8)
+        g=tk.Frame(self.home,bg=BG); g.pack(fill="both",expand=True,padx=16,pady=12)
         for r in range(2): g.grid_rowconfigure(r,weight=1)
         for c in range(3): g.grid_columnconfigure(c,weight=1)
         self.tile(g,"SUB-GHZ","CC1101 capture + analysis",self.show_rf,BLUE,0,0)
@@ -55,10 +81,10 @@ class App(tk.Tk):
         self.tile(g,"UPDATES","GitHub Releases",self.updates,AMBER,1,2)
 
     def build_rf(self):
-        top=tk.Frame(self.rf,bg=BG); top.pack(fill="x",padx=14,pady=4)
-        tk.Button(top,text="←",command=self.show_home,bg=CARD,fg=FG,bd=0,width=3).pack(side="left")
-        tk.Label(top,text="SUB-GHZ   433.92 MHz",bg=BG,fg=FG,font=("DejaVu Sans",15,"bold")).pack(side="left",padx=10)
-        g=tk.Frame(self.rf,bg=BG); g.pack(fill="both",expand=True,padx=8,pady=4)
+        top=tk.Frame(self.rf,bg=BG); top.pack(fill="x",padx=20,pady=8)
+        tk.Button(top,text="←",command=self.show_home,bg=CARD,fg=FG,bd=0,width=4,font=("DejaVu Sans",13,"bold")).pack(side="left")
+        tk.Label(top,text="SUB-GHZ   433.92 MHz",bg=BG,fg=FG,font=("DejaVu Sans",18,"bold")).pack(side="left",padx=14)
+        g=tk.Frame(self.rf,bg=BG); g.pack(fill="both",expand=True,padx=14,pady=8)
         for r in range(2): g.grid_rowconfigure(r,weight=1)
         for c in range(4): g.grid_columnconfigure(c,weight=1)
         self.tile(g,"CHECK","Chip ID + SPI",self.hwcheck,BLUE,0,0)
@@ -162,9 +188,15 @@ class App(tk.Tk):
     def system(self):
         spi=", ".join(glob.glob("/dev/spidev*")) or "none"
         messagebox.showinfo("System",f"SPI: {spi}\n\nStorage:\n{subprocess.getoutput('df -h / | tail -1')}")
-    def desktop(self): self.attributes("-fullscreen",False); self.withdraw()
+
+    def desktop(self):
+        self.attributes("-fullscreen",False)
+        self.overrideredirect(False)
+        self.withdraw()
+
     def power(self):
         if messagebox.askyesno("Power","Shut down Raspberry Pi?"): subprocess.Popen(["sudo","systemctl","poweroff"])
+
     def refresh(self):
         self.clock.config(text=time.strftime("%H:%M"))
         try:
