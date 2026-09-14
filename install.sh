@@ -7,7 +7,7 @@ if [ "${EUID}" -ne 0 ]; then
 fi
 
 apt update
-apt install -y python3 python3-tk python3-spidev python3-pigpio pigpio lxterminal xdg-utils network-manager bluez raspi-config policykit-1
+apt install -y python3 python3-tk python3-spidev python3-pigpio pigpio lxterminal xdg-utils network-manager bluez raspi-config polkit pkexec
 
 CFG="/boot/config.txt"
 [ -f /boot/firmware/config.txt ] && CFG="/boot/firmware/config.txt"
